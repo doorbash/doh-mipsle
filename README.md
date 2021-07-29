@@ -1,34 +1,30 @@
-# dohproxy
-
-DNS over HTTPS proxy written in golang
-
-I got interested in DNS over HTTPS after Firefox started supporting it in its latest release. I looked around to understand how it worked. Most of the implementations were too complex and did a lot of things. I read the RFC[1] and realised it was very trivial. So I tried my hand at implementing a proxy. This is just a proof of concept.
-
-To install it you can use:
+## Build
 ```
-go get github.com/satran/dohproxy
-```
-This assumes you have installed go.
-
-
-To run it use:
-```
-dohproxy
-```
-This will start the proxy on `5353` port.
-
-You can resolve addresses using:
-```
-dig @127.0.0.1 -p 5353 redhat.com
+GOOS=linux GOARCH=mipsle GOMIPS=softfloat go build -trimpath -ldflags="-s -w" -o doh-mipsle
 ```
 
-### Running it as a docker container
-
-If you would like to run it as a docker container run:
+## Usage
 ```
-docker run -it --rm -p 53:53/udp satran/dohproxy
+./doh-mipsle [OPTIONS]
 ```
-This will run the proxy on localhost. You can update your `/etc/resolv.conf` file with `nameserver 127.0.0.1` to resolve all dns queries using the dohproxy. 
 
+**Options:**
+```
+  -debug
+        print debug logs
+  -dns string
+        Custom DNS. Example: 8.8.8.8:53
+  -dohserver string
+        DNS Over HTTPS server address (default "https://mozilla.cloudflare-dns.com/dns-query")
+  -host string
+        interface to listen on (default "localhost")
+  -port int
+        dns port to listen on (default 5353)
+```
 
-[1] https://tools.ietf.org/html/draft-ietf-doh-dns-over-https-13
+## Example
+```
+./doh-mipsle
+./doh-mipsle --host=127.0.0.1 --port=5353
+./doh-mipsle --host=127.0.0.1 --port=5353 --dns=8.8.8.8:53
+```
