@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/base64"
 	"flag"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 )
 
 func main() {
@@ -15,12 +17,31 @@ func main() {
 	port := flag.Int("port", 5353, "dns port to listen on")
 	dohserver := flag.String("dohserver", "https://mozilla.cloudflare-dns.com/dns-query", "DNS Over HTTPS server address")
 	debug := flag.Bool("debug", false, "print debug logs")
+	dns := flag.String("dns", "", "Custom DNS. Example: 8.8.8.8:53")
 	flag.Parse()
 
 	if *debug {
 		log.SetFlags(log.Lshortfile)
 	} else {
 		log.SetFlags(0)
+	}
+
+	if *dns != "" {
+		r := &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				d := net.Dialer{
+					Timeout: time.Millisecond * time.Duration(10000),
+				}
+				return d.DialContext(ctx, network, *dns)
+			},
+		}
+		dialer := &net.Dialer{
+			Resolver: r,
+		}
+		http.DefaultTransport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			return dialer.DialContext(ctx, network, addr)
+		}
 	}
 
 	if err := newUDPServer(*host, *port, *dohserver); err != nil {
